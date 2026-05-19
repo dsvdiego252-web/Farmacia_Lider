@@ -812,7 +812,24 @@ tbody td.qty-c{color:var(--a5)}
 (function(){
   var s = document.createElement('script');
   s.src = 'dados/resumo_dados.js?v=' + Date.now();
-  s.onload = function(){ _initDashboard && _initDashboard(); };
+  s.onload = function(){
+    // Espera _initDashboard ser declarado (está no script principal abaixo)
+    if(typeof _initDashboard === 'function'){
+      _initDashboard();
+    } else {
+      var attempts = 0;
+      var poll = setInterval(function(){
+        attempts++;
+        if(typeof window._initDashboard === 'function'){
+          clearInterval(poll);
+          window._initDashboard();
+        } else if(attempts > 50){ // 5 segundos máximo
+          clearInterval(poll);
+          console.error('_initDashboard não encontrado após 5s');
+        }
+      }, 100);
+    }
+  };
   document.head.appendChild(s);
 })();
 </script>
