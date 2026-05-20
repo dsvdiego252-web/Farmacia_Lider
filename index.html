@@ -1267,10 +1267,6 @@ var CFOPS_COMPRAS = [1102, 2102, 1403, 2403];
 // RT icon helper - safe guard until TIPI script loads
 function _rtIconHtml(cod,ncm){return '<span onclick="showRTModalByCod(\''+cod+'\',\''+(ncm||'')+'\',event)" title="Reforma Tributária IBS/CBS" style="cursor:pointer;margin:0 2px;font-size:11px">⚖️</span>';}
 function showRTModalByCod(cod,ncmHint,evt){if(evt)evt.stopPropagation();if(typeof _rtAllProds==='undefined'||_rtAllProds===null){if(typeof _rtBuildProdMap==='function'){window._rtAllProds=_rtBuildProdMap();}else{alert('Abra a aba Reforma Trib. primeiro para carregar os dados.');return;}}var p=_rtAllProds.find(function(x){return x.cod===String(cod);});if(!p){var ncm=String(ncmHint||'').replace(/\D/g,'');var tipi=ncm&&typeof TIPI_DATA!=='undefined'?TIPI_DATA[ncm]:null;if(!tipi){alert('NCM não encontrado na TIPI.');return;}p={cod:String(cod),nome:'—',ncm:ncm,descTipi:tipi[0],situacao:tipi[1],cClass:tipi[2],cst:tipi[3],tipo:tipi[4],red:tipi[5],ibs:tipi[6],cbs:tipi[7],legal:tipi[8]};}if(typeof showRTByIdx==='function')showRTByIdx(0,[p]);}
-let enP='all',enCF='all',enCS='all',enSel=null,enS={k:'rank',d:1},enDS={k:'dt',d:-1},enCstClick=null;
-let sP='all',sCF='all',sSel=null,sCstClick=null,sS={k:'rank',d:1};
-let iP='all',iCF='all',iCS='all',iAL='all',iNC='all',iNCR='',iSel=null,iAliqClick=null,iCfopClick=null,iInconsist=false,iAviso=false,iS={k:'rank',d:1},iDS={k:'dt',d:-1};
-let eP='all',eCF='all',eCS='all',eAL='all',eNC='all',eNCR='',eSel=null,eAliqClick=null,eCfopClick=null,eInconsist=false,eAviso=false,eS={k:'rank',d:1},eDS={k:'dt',d:-1};
 var cstDGlobal=[];
 var aColorMap={};
 var eColorMap={};
