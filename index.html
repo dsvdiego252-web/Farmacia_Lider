@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+<!-- DASHBOARD_LIDER_LC224_2025_V1_COMPLETO -->
 <!-- DASHBOARD_POLO_V37_RESUMO_FINAL_SEM_CONFLITO -->
 <!-- DASHBOARD_V3_3_RESUMO_COMPRAS_CORRIGIDO -->
 <!-- CORRECAO_PIS_COFINS_V5_FINAL_OK -->
@@ -134,6 +135,76 @@ tbody td.qty-c{color:var(--a5)}
 #splash .pill-loader::after{content:'';position:absolute;left:50%;top:0;width:2px;height:100%;background:rgba(0,0,0,.18)}
 #splash .loading-status{font-family:'DM Mono',monospace;font-size:11px;color:#aeb5d0;letter-spacing:.08em;text-transform:uppercase}
 @keyframes pillSpin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+
+/* LC 224/2025 — visual, filtros, matriz e exportação */
+.lc224-filter-row{
+  display:flex;gap:8px;flex-wrap:wrap;align-items:center
+}
+.lc224-filter-row .finput{
+  width:150px;max-width:180px
+}
+.lc224-tax-card{
+  --kc:#e05555 !important;
+  background:rgba(224,85,85,.10) !important;
+  border:1px solid rgba(224,85,85,.42) !important;
+}
+.lc224-tax-card .kval{
+  color:#e05555 !important;
+}
+.lc224-chart-card{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:11px;
+  padding:16px;
+  margin:0 20px 12px;
+}
+.lc224-chart-wrap{
+  position:relative;
+  height:250px;
+}
+.lc224-chart-help{
+  font-family:var(--fm);
+  font-size:10px;
+  color:var(--muted);
+  margin-top:8px;
+}
+.lc224-active-filter{
+  display:none;
+  align-items:center;
+  gap:8px;
+  background:rgba(232,184,75,.10);
+  border:1px solid rgba(232,184,75,.32);
+  border-radius:6px;
+  padding:5px 9px;
+  font-family:var(--fm);
+  font-size:10px;
+  color:var(--accent);
+  margin-top:8px;
+}
+.lc224-active-filter.show{display:flex}
+.lc224-active-filter button{
+  margin-left:auto;
+  background:none;
+  border:none;
+  color:var(--accent);
+  cursor:pointer;
+  font-size:11px;
+}
+.lc224-matrix{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:11px;
+  padding:16px;
+  margin:0 20px 20px;
+}
+.lc224-matrix .mscroll{
+  max-height:410px;
+  overflow:auto;
+}
+.lc224-matrix table{
+  min-width:1080px;
+}
+
 </style>
 </head>
 <body>
@@ -592,6 +663,7 @@ tbody td.qty-c{color:var(--a5)}
     <button class="sub-tab-btn active" data-action="subtab-ps">📤 PIS/Cofins-Saídas</button>
     <button class="sub-tab-btn" data-action="subtab-pe">📥 PIS/Cofins-Entradas</button>
     <button class="sub-tab-btn" data-action="subtab-pcr">💰 PIS/Cofins-Recolher</button>
+    <button class="sub-tab-btn" data-action="subtab-lc224" id="subtab-pc-lc224">📋 LC 224/2025</button>
   </div>
 <div class="subpage" id="sub-pc-saidas">
   <div class="filter-bar" style="flex-wrap:wrap;gap:6px">
@@ -805,6 +877,133 @@ tbody td.qty-c{color:var(--a5)}
     </div>
   </main>
 </div>
+<div class="subpage" id="sub-pc-lc224" style="display:none">
+  <main>
+    <div style="padding:14px 20px 8px;border-bottom:1px solid var(--border)">
+      <div style="font-family:var(--fm);font-size:11px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px">
+        LC 224/2025 — Débito adicional sobre vendas (PIS 0,165% · Cofins 0,76%)
+      </div>
+      <div style="font-family:var(--fm);font-size:10px;color:var(--muted);margin-bottom:9px">
+        A base de cálculo corresponde ao valor líquido das vendas dos produtos cujas NCMs ou posições constam na planilha de referência.
+        <span id="lc224-source" style="color:var(--accent)"></span>
+      </div>
+
+      <div class="lc224-filter-row">
+        <span style="font-size:11px;color:var(--muted)">Período:</span>
+        <select class="fsel" id="lc224-period-sel" onchange="_lc224LocalPeriodChanged(this)">
+          <option value="all">Todos</option>
+        </select>
+
+        <span style="font-size:11px;color:var(--muted);margin-left:8px">Grupo:</span>
+        <select class="fsel" id="lc224-grupo-sel" onchange="renderLC224()" style="max-width:280px">
+          <option value="all">Todos os grupos</option>
+        </select>
+
+        <span style="font-size:11px;color:var(--muted);margin-left:8px">NCM:</span>
+        <input
+          type="text"
+          class="finput"
+          id="lc224-ncm-input"
+          oninput="renderLC224()"
+          placeholder="NCM ou capítulo..."
+          autocomplete="off"
+        >
+        <button class="ico-btn show" onclick="clearLC224NCM()" title="Limpar NCM">✕</button>
+      </div>
+
+      <div class="lc224-active-filter" id="lc224-active-filter">
+        <span id="lc224-active-filter-text"></span>
+        <button onclick="clearLC224Group()">✕ Limpar grupo</button>
+      </div>
+    </div>
+
+    <div class="kpi-row" style="padding:12px 20px;gap:10px;flex-wrap:wrap">
+      <div class="kpi-card" style="--kc:var(--a2)">
+        <div class="kico">📦</div>
+        <div class="klbl">Produtos com Venda</div>
+        <div class="kval" id="lc224-k-prods">—</div>
+        <div class="ksub">produtos abrangidos pela LC 224</div>
+      </div>
+
+      <div class="kpi-card" style="--kc:var(--a3)">
+        <div class="kico">💰</div>
+        <div class="klbl">Vendas LC 224</div>
+        <div class="kval" id="lc224-k-base">—</div>
+        <div class="ksub">base do débito adicional</div>
+      </div>
+
+      <div class="kpi-card lc224-tax-card">
+        <div class="kico">📊</div>
+        <div class="klbl">PIS Adicional (0,165%)</div>
+        <div class="kval" id="lc224-k-pis">—</div>
+        <div class="ksub">vendas × 0,165%</div>
+      </div>
+
+      <div class="kpi-card lc224-tax-card">
+        <div class="kico">📊</div>
+        <div class="klbl">Cofins Adicional (0,76%)</div>
+        <div class="kval" id="lc224-k-cof">—</div>
+        <div class="ksub">vendas × 0,76%</div>
+      </div>
+
+      <div class="kpi-card lc224-tax-card">
+        <div class="kico">🧾</div>
+        <div class="klbl">Débito Adicional Total</div>
+        <div class="kval" id="lc224-k-total">—</div>
+        <div class="ksub">PIS + Cofins da LC 224</div>
+      </div>
+    </div>
+
+    <div class="lc224-chart-card">
+      <div class="ctitle">Resumo por Grupo LC 224/2025</div>
+      <div class="lc224-chart-wrap">
+        <canvas id="lc224-grupo-chart"></canvas>
+      </div>
+      <div class="lc224-chart-help">
+        Clique em uma barra para filtrar os KPIs e a matriz. Clique novamente no mesmo grupo para remover o filtro.
+      </div>
+    </div>
+
+    <div class="lc224-matrix">
+      <div class="ctitle">Matriz de Produtos Vendidos — LC 224/2025</div>
+      <div class="mat-tb">
+        <div class="sw">
+          <span class="si">🔢</span>
+          <input type="text" id="lc224-cod-search" oninput="renderLC224()" placeholder="Buscar código...">
+        </div>
+        <div class="sw">
+          <span class="si">🔍</span>
+          <input type="text" id="lc224-prod-search" oninput="renderLC224()" placeholder="Buscar produto...">
+        </div>
+        <button class="cfop-btn" type="button" onclick="exportLC224Excel()" title="Exportar os produtos exibidos para Excel" style="border-color:var(--a3);color:var(--a3);white-space:nowrap">
+          📥 Exportar Excel
+        </button>
+        <span class="minfo" id="lc224-prod-info"></span>
+      </div>
+
+      <div class="mscroll">
+        <table id="lc224-prod-tbl">
+          <thead><tr>
+            <th>Cód.</th>
+            <th>Produto</th>
+            <th>NCM</th>
+            <th>Grupo</th>
+            <th class="tr">Qtd.</th>
+            <th class="tr">Valor de Venda</th>
+            <th class="tr">PIS 0,165%</th>
+            <th class="tr">Cofins 0,76%</th>
+            <th class="tr">Débito Total</th>
+          </tr></thead>
+          <tbody id="lc224-prod-body">
+            <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px;font-family:var(--fm);font-size:11px">
+              Carregando dados da LC 224/2025...
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
 </div>
 <script>
 </script>
@@ -914,6 +1113,510 @@ function getPCRule(prodOrNcm){
 const fmt=v=>'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtN=v=>v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtK=v=>v>=1000?(v/1000).toFixed(1)+'k':v.toFixed(0);
+
+// ══════════════════════════════════════════════════════════════════════════════
+// LC 224/2025 — Subaba PIS/Cofins
+// ══════════════════════════════════════════════════════════════════════════════
+
+window.LC224_CONFIG_DEFAULT={"pis_pct":0.165,"cofins_pct":0.76,"fonte":"PIS_Cofins_10%.xlsx","grupos":[{"id":"oleos-vegetais","label":"Óleo de soja e outros óleos vegetais","descricao":"Óleo de soja da posição 15.07 e outros óleos vegetais das posições 15.08 a 15.14","referencia":"15.07, 15.08 a 15.14","prefixos":["1507","1508","1509","1510","1511","1512","1513","1514"],"exatos":[]},{"id":"saboes-de-toucador","label":"Sabões de toucador","descricao":"Sabões de toucador classificados no código 3401.11.90 Ex 01 da TIPI","referencia":"3401.11.90","prefixos":[],"exatos":["34011190"]},{"id":"higiene-bucal-dentaria","label":"Higiene bucal ou dentária","descricao":"Produtos para higiene bucal ou dentária classificados na posição 33.06 da TIPI","referencia":"33.06","prefixos":["3306"],"exatos":[]},{"id":"papel-higienico","label":"Papel higiênico","descricao":"Papel higiênico classificado no código 4818.10.00 da TIPI","referencia":"4818.10.00","prefixos":[],"exatos":["48181000"]},{"id":"massas-alimenticias","label":"Massas alimentícias","descricao":"Massas alimentícias classificadas nos códigos indicados na planilha","referencia":"1902.11.00 1902.19.00 1902.20.00 1902.30.00","prefixos":[],"exatos":["19021100","19021900","19022000","19023000"]}]};
+let _LC224_GROUP_CHART=null;
+
+function _lc224Config(){
+  return (window.LC224_CONFIG && Array.isArray(window.LC224_CONFIG.grupos))
+    ? window.LC224_CONFIG
+    : window.LC224_CONFIG_DEFAULT;
+}
+
+function _lc224NCM(v){
+  let s=String(v==null?'':v).trim();
+  if(/^\d+\.0+$/.test(s)) s=s.split('.')[0];
+  let n=s.replace(/\D/g,'');
+  if(n.length>8 && /^0+$/.test(n.slice(8))) n=n.slice(0,8);
+  return n;
+}
+
+function _lc224MatchGrupo(ncm){
+  const n=_lc224NCM(ncm);
+  if(!n) return null;
+  const cfg=_lc224Config();
+  for(const g of (cfg.grupos||[])){
+    if((g.exatos||[]).includes(n)) return g;
+    if((g.prefixos||[]).some(p=>n.startsWith(String(p)))) return g;
+  }
+  return null;
+}
+
+function _lc224Esc(v){
+  return String(v==null?'':v)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function _syncLC224Groups(){
+  const sel=document.getElementById('lc224-grupo-sel');
+  if(!sel) return;
+
+  const cfg=_lc224Config();
+  const atual=sel.value||'all';
+  const assinatura=(cfg.grupos||[]).map(g=>g.id+'|'+g.label).join(';;');
+
+  if(sel.dataset.assinatura===assinatura) return;
+
+  sel.innerHTML='<option value="all">Todos os grupos</option>';
+
+  (cfg.grupos||[]).forEach(function(g){
+    const op=document.createElement('option');
+    op.value=g.id;
+    op.textContent=g.label||g.descricao||g.id;
+    sel.appendChild(op);
+  });
+
+  sel.dataset.assinatura=assinatura;
+
+  if(Array.from(sel.options).some(o=>o.value===atual)){
+    sel.value=atual;
+  }
+}
+
+function _lc224LocalPeriodChanged(sel){
+  if(sel) sel.dataset.globalPeriod='';
+  renderLC224();
+}
+
+function _initLC224Periods(){
+  const sel=document.getElementById('lc224-period-sel');
+  if(!sel) return;
+
+  const periods=(typeof PERIODS_PS!=='undefined')?PERIODS_PS:
+                (typeof PERIODS!=='undefined')?PERIODS:[];
+
+  const globalSel=document.getElementById('global-period');
+  const globalAtual=globalSel ? (globalSel.value||'all') : 'all';
+  const pendente=sel.dataset.globalPeriod||'';
+  const atual=sel.value||pendente||globalAtual||'all';
+  const assinatura=periods.join('|');
+
+  if(sel.dataset.assinatura!==assinatura){
+    sel.innerHTML='<option value="all">Todos</option>';
+
+    periods.forEach(function(p){
+      const opt=document.createElement('option');
+      opt.value=p;
+      opt.textContent=p;
+      sel.appendChild(opt);
+    });
+
+    sel.dataset.assinatura=assinatura;
+
+    const desejado=pendente||atual||globalAtual||'all';
+    if(Array.from(sel.options).some(o=>o.value===desejado)){
+      sel.value=desejado;
+    }else{
+      sel.value='all';
+    }
+  }else if(pendente && Array.from(sel.options).some(o=>o.value===pendente)){
+    sel.value=pendente;
+  }
+
+  if(pendente) sel.dataset.globalPeriod='';
+  _syncLC224Groups();
+}
+
+function clearLC224NCM(){
+  const input=document.getElementById('lc224-ncm-input');
+  if(input) input.value='';
+  renderLC224();
+}
+
+function clearLC224Group(){
+  const sel=document.getElementById('lc224-grupo-sel');
+  if(sel) sel.value='all';
+  renderLC224();
+}
+
+function _renderLC224GroupChart(grupoMap, grupoSelecionado){
+  const canvas=document.getElementById('lc224-grupo-chart');
+  if(!canvas || typeof Chart==='undefined') return;
+
+  const cfg=_lc224Config();
+  const grupos=(cfg.grupos||[])
+    .filter(g=>grupoMap[g.id])
+    .sort((a,b)=>(grupoMap[b.id]?.venda||0)-(grupoMap[a.id]?.venda||0));
+
+  const labels=grupos.map(g=>g.label||g.descricao||g.id);
+  const values=grupos.map(g=>grupoMap[g.id].venda);
+  const colors=grupos.map(g=>g.id===grupoSelecionado
+    ? 'rgba(232,184,75,.92)'
+    : 'rgba(91,141,238,.72)'
+  );
+  const borders=grupos.map(g=>g.id===grupoSelecionado
+    ? '#e8b84b'
+    : 'rgba(91,141,238,.95)'
+  );
+
+  if(_LC224_GROUP_CHART){
+    try{_LC224_GROUP_CHART.destroy()}catch(e){}
+  }
+
+  _LC224_GROUP_CHART=new Chart(canvas,{
+    type:'bar',
+    data:{
+      labels:labels,
+      datasets:[{
+        label:'Valor de Venda',
+        data:values,
+        backgroundColor:colors,
+        borderColor:borders,
+        borderWidth:1,
+        borderRadius:5
+      }]
+    },
+    options:{
+      indexAxis:'y',
+      responsive:true,
+      maintainAspectRatio:false,
+      interaction:{mode:'nearest',intersect:true},
+      onClick:function(evt,els){
+        if(!els || !els.length) return;
+
+        const idx=els[0].index;
+        const grupo=grupos[idx];
+        if(!grupo) return;
+
+        const sel=document.getElementById('lc224-grupo-sel');
+        if(!sel) return;
+
+        sel.value=(sel.value===grupo.id)?'all':grupo.id;
+        renderLC224();
+      },
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#181c26',
+          borderColor:'#232840',
+          borderWidth:1,
+          titleColor:'#e8b84b',
+          bodyColor:'#e8eaf0',
+          callbacks:{
+            title:function(items){
+              const i=items && items[0] ? items[0].dataIndex : -1;
+              const g=grupos[i];
+              return g ? (g.label||g.descricao||g.id) : '';
+            },
+            label:function(ctx){
+              const i=ctx.dataIndex;
+              const g=grupos[i];
+              const d=g ? grupoMap[g.id] : null;
+              if(!d) return '';
+              return [
+                ' Vendas: '+fmt(d.venda),
+                ' Produtos: '+fmtN(d.itens),
+                ' PIS: '+fmt(d.pis),
+                ' Cofins: '+fmt(d.cof),
+                ' Débito total: '+fmt(d.total)
+              ];
+            }
+          }
+        }
+      },
+      scales:{
+        x:{
+          grid:{color:'#1a1e2a'},
+          ticks:{
+            color:'#6b7394',
+            font:{family:'DM Mono',size:10},
+            callback:function(v){
+              return 'R$ '+(Number(v)>=1000000
+                ? (Number(v)/1000000).toFixed(1)+'M'
+                : (Number(v)/1000).toFixed(0)+'k');
+            }
+          }
+        },
+        y:{
+          grid:{display:false},
+          ticks:{
+            color:'#aeb5d0',
+            font:{family:'DM Mono',size:10}
+          }
+        }
+      }
+    }
+  });
+}
+
+function exportLC224Excel(){
+  try{
+    if(typeof XLSX==='undefined'){
+      alert('A biblioteca de exportação para Excel ainda não foi carregada.');
+      return;
+    }
+
+    const rows=Array.isArray(window._LC224_EXPORT_ROWS)?window._LC224_EXPORT_ROWS:[];
+    if(!rows.length){
+      alert('Não há produtos da LC 224/2025 para exportar nos filtros atuais.');
+      return;
+    }
+
+    const periodo=(document.getElementById('lc224-period-sel')||{}).value||'all';
+    const grupoId=(document.getElementById('lc224-grupo-sel')||{}).value||'all';
+    const ncm=(document.getElementById('lc224-ncm-input')||{}).value||'';
+    const cod=(document.getElementById('lc224-cod-search')||{}).value||'';
+    const produto=(document.getElementById('lc224-prod-search')||{}).value||'';
+
+    const cfg=_lc224Config();
+    const grupo=(cfg.grupos||[]).find(g=>g.id===grupoId);
+    const grupoNome=grupo?(grupo.label||grupo.descricao||grupo.id):'Todos os grupos';
+
+    const dados=rows.map(function(p){
+      return {
+        'Código': p.cod,
+        'Produto': p.nome,
+        'NCM': p.ncm,
+        'Grupo LC 224/2025': p.grupo.label||p.grupo.descricao||p.grupo.id,
+        'Quantidade': Number(p.qty||0),
+        'Valor de Venda': Number(p.venda||0),
+        'PIS Adicional 0,165%': Number(p.pis||0),
+        'Cofins Adicional 0,76%': Number(p.cof||0),
+        'Débito Adicional Total': Number(p.total||0)
+      };
+    });
+
+    const resumo=[
+      ['Relatório','Produtos LC 224/2025'],
+      ['Período',periodo==='all'?'Todos':periodo],
+      ['Grupo',grupoNome],
+      ['Filtro NCM',ncm||'Todos'],
+      ['Filtro Código',cod||'Todos'],
+      ['Filtro Produto',produto||'Todos'],
+      ['Quantidade de Produtos',rows.length],
+      ['Valor Total de Venda',rows.reduce((s,p)=>s+Number(p.venda||0),0)],
+      ['PIS Adicional Total',rows.reduce((s,p)=>s+Number(p.pis||0),0)],
+      ['Cofins Adicional Total',rows.reduce((s,p)=>s+Number(p.cof||0),0)],
+      ['Débito Adicional Total',rows.reduce((s,p)=>s+Number(p.total||0),0)]
+    ];
+
+    const wb=XLSX.utils.book_new();
+    const wsProd=XLSX.utils.json_to_sheet(dados);
+    const wsResumo=XLSX.utils.aoa_to_sheet(resumo);
+
+    wsProd['!cols']=[
+      {wch:14},{wch:42},{wch:14},{wch:34},{wch:13},
+      {wch:18},{wch:20},{wch:22},{wch:22}
+    ];
+    wsResumo['!cols']=[{wch:28},{wch:34}];
+
+    if(wsProd['!ref']){
+      const range=XLSX.utils.decode_range(wsProd['!ref']);
+      for(let r=1;r<=range.e.r;r++){
+        for(let c=4;c<=8;c++){
+          const cell=wsProd[XLSX.utils.encode_cell({r:r,c:c})];
+          if(cell && typeof cell.v==='number'){
+            cell.z=c===4?'0.00':'R$ #,##0.00';
+          }
+        }
+      }
+    }
+
+    ['B8','B9','B10','B11'].forEach(function(addr){
+      if(wsResumo[addr] && typeof wsResumo[addr].v==='number'){
+        wsResumo[addr].z='R$ #,##0.00';
+      }
+    });
+
+    XLSX.utils.book_append_sheet(wb,wsProd,'Produtos LC 224');
+    XLSX.utils.book_append_sheet(wb,wsResumo,'Resumo');
+
+    const periodoNome=periodo==='all'?'Todos_Periodos':periodo.replace(/[^0-9A-Za-z_-]/g,'_');
+    const agora=new Date();
+    const dataNome=String(agora.getFullYear())+
+      String(agora.getMonth()+1).padStart(2,'0')+
+      String(agora.getDate()).padStart(2,'0');
+
+    XLSX.writeFile(wb,'Produtos_LC_224_2025_Lider_'+periodoNome+'_'+dataNome+'.xlsx');
+  }catch(e){
+    console.error('Erro ao exportar LC 224:',e);
+    alert('Não foi possível gerar o arquivo Excel.');
+  }
+}
+
+function renderLC224(){
+  _initLC224Periods();
+
+  const cfg=_lc224Config();
+  const pisPct=Number(cfg.pis_pct||0.165);
+  const cofPct=Number(cfg.cofins_pct||0.76);
+
+  const perFiltro=(document.getElementById('lc224-period-sel')||{}).value||'all';
+  const grpFiltro=(document.getElementById('lc224-grupo-sel')||{}).value||'all';
+  const ncmFiltro=_lc224NCM((document.getElementById('lc224-ncm-input')||{}).value||'');
+  const codBusca=String((document.getElementById('lc224-cod-search')||{}).value||'').trim().toLowerCase();
+  const prodBusca=String((document.getElementById('lc224-prod-search')||{}).value||'').trim().toLowerCase();
+
+  const source=document.getElementById('lc224-source');
+  if(source) source.textContent='Fonte: '+(cfg.fonte||'planilha LC 224');
+
+  const active=document.getElementById('lc224-active-filter');
+  const activeText=document.getElementById('lc224-active-filter-text');
+
+  if(active && activeText){
+    const grupoAtivo=(cfg.grupos||[]).find(g=>g.id===grpFiltro);
+    if(grupoAtivo){
+      active.classList.add('show');
+      activeText.textContent='Grupo selecionado: '+(grupoAtivo.label||grupoAtivo.descricao);
+    }else{
+      active.classList.remove('show');
+      activeText.textContent='';
+    }
+  }
+
+  if(typeof DETAIL_PS==='undefined'){
+    const pb=document.getElementById('lc224-prod-body');
+    if(pb){
+      pb.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px;font-family:var(--fm);font-size:11px">Aguardando o carregamento dos dados completos...</td></tr>';
+    }
+    return;
+  }
+
+  const prodMap={};
+  const cfopsVenda=(typeof CFOPS_VENDAS!=='undefined' && Array.isArray(CFOPS_VENDAS))
+    ? CFOPS_VENDAS.map(Number)
+    : [];
+
+  (DETAIL_PS||[]).forEach(function(r){
+    const dt=String(r[0]||'');
+
+    if(perFiltro!=='all' && !dt.startsWith(perFiltro)) return;
+
+    const cfop=Number(r[4]||0);
+    if(cfopsVenda.length && !cfopsVenda.includes(cfop)) return;
+
+    const venda=Number(r[6]||0);
+    if(!(venda>0)) return;
+
+    const ncm=_lc224NCM(r[15]);
+    const grupo=_lc224MatchGrupo(ncm);
+
+    if(!grupo) return;
+    if(ncmFiltro && !ncm.startsWith(ncmFiltro)) return;
+
+    const cod=String(r[2]||'');
+    const nome=String(r[3]||'');
+    const key=[cod,nome,ncm,grupo.id].join('|');
+
+    if(!prodMap[key]){
+      prodMap[key]={
+        cod:cod,
+        nome:nome,
+        ncm:ncm,
+        grupo:grupo,
+        qty:0,
+        venda:0
+      };
+    }
+
+    prodMap[key].qty+=Number(r[5]||0);
+    prodMap[key].venda+=venda;
+  });
+
+  const prodsTodos=Object.values(prodMap)
+    .filter(p=>p.venda>0)
+    .map(function(p){
+      p.pis=+(p.venda*pisPct/100).toFixed(2);
+      p.cof=+(p.venda*cofPct/100).toFixed(2);
+      p.total=+(p.pis+p.cof).toFixed(2);
+      return p;
+    });
+
+  const grupoMap={};
+
+  prodsTodos.forEach(function(p){
+    const id=p.grupo.id;
+
+    if(!grupoMap[id]){
+      grupoMap[id]={
+        grupo:p.grupo,
+        itens:0,
+        venda:0,
+        pis:0,
+        cof:0,
+        total:0
+      };
+    }
+
+    grupoMap[id].itens++;
+    grupoMap[id].venda+=p.venda;
+    grupoMap[id].pis+=p.pis;
+    grupoMap[id].cof+=p.cof;
+    grupoMap[id].total+=p.total;
+  });
+
+  _renderLC224GroupChart(grupoMap,grpFiltro);
+
+  let prods=prodsTodos.filter(function(p){
+    if(grpFiltro!=='all' && p.grupo.id!==grpFiltro) return false;
+    if(codBusca && !String(p.cod).toLowerCase().includes(codBusca)) return false;
+    if(prodBusca && !String(p.nome).toLowerCase().includes(prodBusca)) return false;
+    return true;
+  });
+
+  prods.sort((a,b)=>b.venda-a.venda);
+
+  window._LC224_EXPORT_ROWS=prods.map(function(p){
+    return {
+      cod:p.cod,
+      nome:p.nome,
+      ncm:p.ncm,
+      grupo:p.grupo,
+      qty:p.qty,
+      venda:p.venda,
+      pis:p.pis,
+      cof:p.cof,
+      total:p.total
+    };
+  });
+
+  const totItens=prods.length;
+  const totVenda=prods.reduce((s,p)=>s+p.venda,0);
+  const totPis=+(totVenda*pisPct/100).toFixed(2);
+  const totCof=+(totVenda*cofPct/100).toFixed(2);
+  const totTotal=+(totPis+totCof).toFixed(2);
+
+  function setEl(id,v){
+    const e=document.getElementById(id);
+    if(e)e.textContent=v;
+  }
+
+  setEl('lc224-k-prods',fmtN(totItens));
+  setEl('lc224-k-base',fmt(totVenda));
+  setEl('lc224-k-pis',fmt(totPis));
+  setEl('lc224-k-cof',fmt(totCof));
+  setEl('lc224-k-total',fmt(totTotal));
+  setEl('lc224-prod-info',fmtN(totItens)+' produto(s)');
+
+  const pbody=document.getElementById('lc224-prod-body');
+
+  if(pbody){
+    if(!prods.length){
+      pbody.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px;font-family:var(--fm);font-size:11px">Nenhum produto vendido da LC 224/2025 foi encontrado nos filtros selecionados.</td></tr>';
+    }else{
+      pbody.innerHTML=prods.map(function(p){
+        return '<tr>'+
+          '<td style="font-family:var(--fm);font-size:11px">'+_lc224Esc(p.cod)+'</td>'+
+          '<td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+_lc224Esc(p.nome)+'">'+_lc224Esc(p.nome)+'</td>'+
+          '<td style="font-family:var(--fm);font-size:11px;color:var(--a2)">'+_lc224Esc(p.ncm)+'</td>'+
+          '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--muted)" title="'+_lc224Esc(p.grupo.descricao||'')+'">'+_lc224Esc(p.grupo.label||p.grupo.descricao)+'</td>'+
+          '<td class="tr">'+fmtN(p.qty)+'</td>'+
+          '<td class="tr money">'+fmt(p.venda)+'</td>'+
+          '<td class="tr" style="color:#e05555">'+fmt(p.pis)+'</td>'+
+          '<td class="tr" style="color:#e05555">'+fmt(p.cof)+'</td>'+
+          '<td class="tr" style="color:#e05555;font-weight:700">'+fmt(p.total)+'</td>'+
+          '</tr>';
+      }).join('');
+    }
+  }
+}
+// ── fim LC 224/2025 ─────────────────────────────────────────────────────────
+
 const trunc=(s,n)=>s&&s.length>n?s.slice(0,n)+'…':s||'';
 
 const CLR=['#e8b84b','#5b8dee','#3ecf8e','#f06060','#b48ef5','#f5a65b','#f0c87a','#60c0f0'];
@@ -2783,7 +3486,7 @@ function switchSubTabPC(sub){
   pcSubActive=sub;
   document.querySelectorAll('#page-pc .subpage').forEach(p=>p.style.display='none');
   document.querySelectorAll('#page-pc .sub-tab-btn').forEach(b=>b.classList.remove('active'));
-  const subId=sub==='ps'?'sub-pc-saidas':sub==='pe'?'sub-pc-entradas':'sub-pc-recolher';
+  const subId=sub==='ps'?'sub-pc-saidas':sub==='pe'?'sub-pc-entradas':sub==='lc224'?'sub-pc-lc224':'sub-pc-recolher';
   const el=document.getElementById(subId);
   if(el) el.style.display='block';
   document.querySelectorAll('#page-pc .sub-tab-btn').forEach(b=>{
@@ -2792,6 +3495,7 @@ function switchSubTabPC(sub){
   requestAnimationFrame(function(){requestAnimationFrame(function(){
     if(sub==='ps') renderPS();
     else if(sub==='pe') renderPE();
+    else if(sub==='lc224') renderLC224();
     else renderPCR();
   });});
 }
@@ -2846,9 +3550,12 @@ function setGlobalPeriod(v){
   // Atualizar todos os estados de período
   sP=v; enP=v; iP=v; eP=v; psP=v; peP=v;
   // Atualizar todos os selects de período
-  ['s-period-sel','en-period-sel','i-period-sel','e-period-sel','ps-period-sel','pe-period-sel'].forEach(function(id){
+  ['s-period-sel','en-period-sel','i-period-sel','e-period-sel','ps-period-sel','pe-period-sel','lc224-period-sel'].forEach(function(id){
     var el=document.getElementById(id);
-    if(el) el.value=v;
+    if(el){
+      if(id==='lc224-period-sel') el.dataset.globalPeriod=v;
+      el.value=v;
+    }
   });
   // Resetar seleções
   sSel=null; enSel=null; iSel=null; eSel=null; psSel=null; peSel=null;
@@ -2870,6 +3577,7 @@ function setGlobalPeriod(v){
       } else if(fact==='tab-pc'){
         if(pcSubActive==='ps') renderPS();
         else if(pcSubActive==='pe') renderPE();
+        else if(pcSubActive==='lc224') renderLC224();
         else renderPCR();
       } else if(fact==='tab-rt') renderRT();
       else if(fact==='tab-saidas-fiscal') renderS();
@@ -3418,6 +4126,7 @@ function bindEvents(){
     else if(a==='subtab-ps')switchSubTabPC('ps');
     else if(a==='subtab-pe')switchSubTabPC('pe');
     else if(a==='subtab-pcr')switchSubTabPC('pcr');
+    else if(a==='subtab-lc224')switchSubTabPC('lc224');
     else if(a==='enfop-all')setENfop('all',el);
     else if(a&&a.startsWith('enfop-')&&a!=='enfop-all'){const v=parseInt(a.split('enfop-')[1]);setENfop(v,el);}
     else if(a==='clear-ensel')clearENSel();
