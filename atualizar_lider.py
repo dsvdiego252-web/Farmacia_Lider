@@ -91,8 +91,10 @@ df_e = pd.read_excel(PLANILHA, sheet_name="Entradas")
 # Normalizar datas
 df_s["data_ent"] = pd.to_datetime(df_s["data_ent"])
 df_e["data_ent"] = pd.to_datetime(df_e["data_ent"])
-df_s["Periodo"]  = pd.to_datetime(df_s["Periodo"]).dt.to_period("M").astype(str)
-df_e["Periodo"]  = pd.to_datetime(df_e["Periodo"]).dt.to_period("M").astype(str)
+# Periodo é derivado de data_ent (em vez de ler a coluna Periodo da planilha),
+# pois essa coluna vem de formula/Power Query e pode chegar zerada/quebrada.
+df_s["Periodo"]  = df_s["data_ent"].dt.to_period("M").astype(str)
+df_e["Periodo"]  = df_e["data_ent"].dt.to_period("M").astype(str)
 df_s["ncm_produto"] = df_s["ncm_produto"].astype(str).str.strip()
 df_e["ncm_produto"] = df_e["ncm_produto"].astype(str).str.strip()
 df_s["produto"] = df_s["produto"].astype(str).str.strip()
