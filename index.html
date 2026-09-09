@@ -3954,12 +3954,19 @@ function calcPrevisao(valorAtual, srcDates, periodoAtual){
 }
 
 function renderICMSR(){
-  // Calcular ICMS a Recolher: Saídas - Entradas
-  var prodS=fProds('i'), prodE=fProds_E_forPeriod(iP);
-  var icmsS=prodS.reduce(function(s,p){return s+p.icms;},0);
-  var icmsE=prodE.reduce(function(s,p){return s+p.icms;},0);
-  var baseS=prodS.reduce(function(s,p){return s+p.base;},0);
-  var baseE=prodE.reduce(function(s,p){return s+p.base;},0);
+  // Calcular ICMS a Recolher: Saídas - Entradas, sempre do total do período
+  // (usa DETAIL_I/DETAIL_E direto, ignorando filtros de CFOP/CST/alíquota que
+  // ficam ativos nas sub-abas Saídas/Entradas — esse card não deve variar
+  // conforme um drill-down deixado em outra sub-aba)
+  var period=iP;
+  function _sumDetail(rows, idx){
+    return rows.filter(function(r){return period==='all'||String(r[0]).startsWith(period);})
+      .reduce(function(s,r){return s+(+r[idx]||0);},0);
+  }
+  var icmsS=_sumDetail(DETAIL_I,9);
+  var icmsE=_sumDetail(DETAIL_E,9);
+  var baseS=_sumDetail(DETAIL_I,7);
+  var baseE=_sumDetail(DETAIL_E,7);
   var recolher=icmsS-icmsE;
   
   document.getElementById('icr-s').textContent=fmt(icmsS);
