@@ -780,8 +780,9 @@ if GIT_PUSH:
         except Exception as cex:
             print(f"ℹ️  Commit não criado ou sem alterações: {cex}")
         origin = repo.remote(name="origin")
-        # Envia para main (branch do Vercel Production)
-        push_info = origin.push(refspec="master:main", force=True)
+        # Envia para main (branch do Vercel Production), usando o HEAD atual
+        # em vez do nome fixo "master" (o nome da branch local pode variar).
+        push_info = origin.push(refspec="HEAD:main", force=True)
         for info in push_info:
             if info.flags & info.ERROR:
                 print(f"⚠️  Aviso no push: {info.summary}")
